@@ -12,16 +12,21 @@ export function FileUpload({ onFilesSelect }: FileUploadProps) {
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return;
 
-    const pngFiles = Array.from(files).filter(file => 
-      file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')
+    const imageFiles = Array.from(files).filter(file => 
+      file.type === 'image/png' || 
+      file.type === 'image/jpeg' || 
+      file.type === 'image/jpg' ||
+      file.name.toLowerCase().endsWith('.png') ||
+      file.name.toLowerCase().endsWith('.jpg') ||
+      file.name.toLowerCase().endsWith('.jpeg')
     );
 
-    if (pngFiles.length === 0) {
-      alert('กรุณาเลือกไฟล์ PNG เท่านั้น');
+    if (imageFiles.length === 0) {
+      alert('กรุณาเลือกไฟล์ PNG, JPG หรือ JPEG เท่านั้น');
       return;
     }
 
-    onFilesSelect(pngFiles);
+    onFilesSelect(imageFiles);
   }, [onFilesSelect]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -60,7 +65,7 @@ export function FileUpload({ onFilesSelect }: FileUploadProps) {
       >
         <input
           type="file"
-          accept=".png,image/png"
+          accept=".png,.jpg,.jpeg,image/png,image/jpeg,image/jpg"
           multiple
           onChange={handleInputChange}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -77,12 +82,12 @@ export function FileUpload({ onFilesSelect }: FileUploadProps) {
           {/* Compact Text */}
           <div className="space-y-1">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-              {isDragOver ? 'วางไฟล์ที่นี่!' : 'เลือกไฟล์ PNG'}
+              {isDragOver ? 'วางไฟล์ที่นี่!' : 'เลือกไฟล์รูปภาพ'}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-300">
               {isDragOver 
                 ? 'ปล่อยเพื่อเริ่มการอัปโหลด' 
-                : 'ลากและวาง หรือคลิกเพื่อเลือก'
+                : 'PNG, JPG, JPEG - ลากและวาง หรือคลิกเพื่อเลือก'
               }
             </p>
           </div>

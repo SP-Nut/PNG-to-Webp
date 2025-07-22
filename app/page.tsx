@@ -142,7 +142,7 @@ export default function Home() {
         {/* Compact Header */}
         <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent mb-2">
-            PNG to WebP Converter
+            Image to WebP Converter
           </h1>
           <div className="flex justify-center gap-2 mb-4">
             <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
@@ -184,7 +184,7 @@ export default function Home() {
                 <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4">
                   <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
                     <span className="text-xl">📁</span>
-                    เลือกไฟล์ PNG
+                    เลือกไฟล์รูปภาพ
                   </h2>
                   <FileUpload onFilesSelect={handleFilesSelect} />
                 </div>
@@ -272,7 +272,7 @@ export default function Home() {
                     <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                       <div className="flex items-start gap-2">
                         <span className="text-blue-600 font-bold">1.</span>
-                        <span>เลือกไฟล์ PNG ที่ต้องการแปลง (รองรับหลายไฟล์)</span>
+                        <span>เลือกไฟล์รูปภาพที่ต้องการแปลง (PNG, JPG, JPEG รองรับหลายไฟล์)</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <span className="text-blue-600 font-bold">2.</span>
@@ -315,7 +315,7 @@ export default function Home() {
         <footer className="mt-6 text-center text-gray-600 dark:text-gray-400">
           <div className="text-xs space-y-1">
             <p className="flex items-center justify-center gap-2 flex-wrap">
-              <span>© 2025 PNG to WebP Converter</span>
+              <span>© 2025 Image to WebP Converter</span>
               <span>|</span>
               <span className="flex items-center gap-1">
                 ทำด้วย ❤️ โดย 

@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PNG to WebP Converter | แปลงไฟล์ PNG เป็น WebP",
-  description: "แปลงไฟล์ PNG เป็น WebP ได้อย่างง่ายดาย ปลอดภัย 100% ทำงานใน Browser ไม่ต้องอัปโหลดไฟล์ รองรับหลายไฟล์พร้อมกัน",
-  keywords: ["PNG to WebP", "แปลงรูป", "image converter", "webp converter", "thai"],
-  authors: [{ name: "PNG to WebP Converter" }],
+  title: "Image to WebP Converter | แปลงไฟล์รูปภาพ PNG JPG JPEG เป็น WebP",
+  description: "แปลงไฟล์รูปภาพ PNG, JPG, JPEG เป็น WebP ได้อย่างง่ายดาย ปลอดภัย 100% ทำงานใน Browser ไม่ต้องอัปโหลดไฟล์ รองรับหลายไฟล์พร้อมกัน",
+  keywords: ["Image to WebP", "PNG to WebP", "JPG to WebP", "JPEG to WebP", "แปลงรูป", "image converter", "webp converter", "thai"],
+  authors: [{ name: "Image to WebP Converter" }],
   viewport: "width=device-width, initial-scale=1",
 };
 
