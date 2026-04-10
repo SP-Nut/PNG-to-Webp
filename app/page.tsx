@@ -297,18 +297,8 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-1">
-          <p>
-            © {new Date().getFullYear()} Image to WebP Converter · ทำด้วย ❤️ โดย{' '}
-            <a
-              href="https://nonie001.github.io/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-500 hover:underline"
-            >
-              Anas.dev
-            </a>
-          </p>
+        <footer className="mt-12 text-center text-xs text-slate-400 dark:text-slate-500">
+          <p>© {new Date().getFullYear()} Image to WebP Converter</p>
         </footer>
       </div>
     </div>
