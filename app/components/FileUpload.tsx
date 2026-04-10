@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { Upload, ImagePlus, Shield, Layers } from 'lucide-react';
 
 interface FileUploadProps {
   onFilesSelect: (files: File[]) => void;
@@ -50,63 +51,52 @@ export function FileUpload({ onFilesSelect }: FileUploadProps) {
   }, [handleFileSelect]);
 
   return (
-    <div className="space-y-3">
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`
-          relative border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 group cursor-pointer
-          ${isDragOver 
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.02]' 
-            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-          }
-        `}
-      >
-        <input
-          type="file"
-          accept=".png,.jpg,.jpeg,image/png,image/jpeg,image/jpg"
-          multiple
-          onChange={handleInputChange}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        />
-        
-        <div className="space-y-3">
-          {/* Compact Icon */}
-          <div className={`transition-all duration-300 ${isDragOver ? 'animate-bounce' : 'group-hover:scale-110'}`}>
-            <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-xl text-white shadow-lg">
-              {isDragOver ? '📥' : '📸'}
-            </div>
-          </div>
-          
-          {/* Compact Text */}
-          <div className="space-y-1">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-              {isDragOver ? 'วางไฟล์ที่นี่!' : 'เลือกไฟล์รูปภาพ'}
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              {isDragOver 
-                ? 'ปล่อยเพื่อเริ่มการอัปโหลด' 
-                : 'PNG, JPG, JPEG - ลากและวาง หรือคลิกเพื่อเลือก'
-              }
-            </p>
-          </div>
-          
-          {/* Compact Feature Tags */}
-          <div className="flex items-center justify-center gap-2">
-            <div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-              📎 หลายไฟล์
-            </div>
-            <div className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-              🔒 ปลอดภัย
-            </div>
-          </div>
+    <div
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      className={`
+        relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer
+        ${isDragOver 
+          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30' 
+          : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+        }
+      `}
+    >
+      <input
+        type="file"
+        accept=".png,.jpg,.jpeg,image/png,image/jpeg,image/jpg"
+        multiple
+        onChange={handleInputChange}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      />
+      
+      <div className="space-y-4">
+        <div className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+          isDragOver 
+            ? 'bg-indigo-500 text-white' 
+            : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+        }`}>
+          {isDragOver ? <Upload className="w-7 h-7" /> : <ImagePlus className="w-7 h-7" />}
         </div>
-      </div>
-
-      {/* Compact Info */}
-      <div className="text-center text-xs text-gray-500 dark:text-gray-400">
-        <p>✅ รองรับชื่อไฟล์ภาษาไทย | 🏠 ทำงานใน Browser</p>
+        
+        <div>
+          <p className="text-base font-semibold text-slate-800 dark:text-slate-100">
+            {isDragOver ? 'วางไฟล์ที่นี่' : 'ลากไฟล์มาวาง หรือคลิกเพื่อเลือก'}
+          </p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            รองรับ PNG, JPG, JPEG — เลือกได้หลายไฟล์
+          </p>
+        </div>
+        
+        <div className="flex items-center justify-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <span className="inline-flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5" /> หลายไฟล์
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Shield className="w-3.5 h-3.5" /> ประมวลผลในเครื่อง
+          </span>
+        </div>
       </div>
     </div>
   );

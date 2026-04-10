@@ -5,6 +5,17 @@ import JSZip from 'jszip';
 import { FileUpload } from './components/FileUpload';
 import { ImagePreview } from './components/ImagePreview';
 import { ConvertedImages } from './components/ConvertedImages';
+import {
+  ArrowRightLeft,
+  Download,
+  Loader2,
+  Trash2,
+  SlidersHorizontal,
+  Shield,
+  Zap,
+  Globe,
+  PackageOpen,
+} from 'lucide-react';
 
 interface FileWithPreview {
   file: File;
@@ -15,6 +26,7 @@ interface FileWithPreview {
 interface ConvertedFile {
   id: string;
   originalName: string;
+  originalSize: number;
   webpBlob: Blob;
   preview: string;
   webpPreview: string;
@@ -25,15 +37,24 @@ export default function Home() {
   const [convertedFiles, setConvertedFiles] = useState<ConvertedFile[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [isCreatingZip, setIsCreatingZip] = useState(false);
+  const [quality, setQuality] = useState(0.85);
 
   const handleFilesSelect = useCallback((selectedFiles: File[]) => {
     const filesWithPreview = selectedFiles.map(file => ({
       file,
       preview: URL.createObjectURL(file),
-      id: Math.random().toString(36).substr(2, 9)
+      id: Math.random().toString(36).substr(2, 9),
     }));
-    setFiles(filesWithPreview);
+    setFiles(prev => [...prev, ...filesWithPreview]);
     setConvertedFiles([]);
+  }, []);
+
+  const handleRemoveFile = useCallback((id: string) => {
+    setFiles(prev => {
+      const target = prev.find(f => f.id === id);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter(f => f.id !== id);
+    });
   }, []);
 
   const convertToWebP = useCallback(async () => {
@@ -42,7 +63,7 @@ export default function Home() {
     setIsConverting(true);
     const converted: ConvertedFile[] = [];
 
-    for (const fileWithPreview of files) {
+    for (const fp of files) {
       try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -53,23 +74,27 @@ export default function Home() {
             canvas.width = img.width;
             canvas.height = img.height;
             ctx?.drawImage(img, 0, 0);
-            
-            canvas.toBlob((blob) => {
-              if (blob) {
-                const webpPreview = URL.createObjectURL(blob);
-                converted.push({
-                  id: fileWithPreview.id,
-                  originalName: fileWithPreview.file.name,
-                  webpBlob: blob,
-                  preview: fileWithPreview.preview,
-                  webpPreview
-                });
-              }
-              resolve();
-            }, 'image/webp', 0.9);
+
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  converted.push({
+                    id: fp.id,
+                    originalName: fp.file.name,
+                    originalSize: fp.file.size,
+                    webpBlob: blob,
+                    preview: fp.preview,
+                    webpPreview: URL.createObjectURL(blob),
+                  });
+                }
+                resolve();
+              },
+              'image/webp',
+              quality,
+            );
           };
           img.onerror = reject;
-          img.src = fileWithPreview.preview;
+          img.src = fp.preview;
         });
       } catch (error) {
         console.error('Error converting file:', error);
@@ -78,13 +103,13 @@ export default function Home() {
 
     setConvertedFiles(converted);
     setIsConverting(false);
-  }, [files]);
+  }, [files, quality]);
 
-  const downloadFile = useCallback((convertedFile: ConvertedFile) => {
-    const url = URL.createObjectURL(convertedFile.webpBlob);
+  const downloadFile = useCallback((cf: ConvertedFile) => {
+    const url = URL.createObjectURL(cf.webpBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = convertedFile.originalName.replace(/\.[^/.]+$/, '.webp');
+    a.download = cf.originalName.replace(/\.[^/.]+$/, '.webp');
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -93,241 +118,197 @@ export default function Home() {
 
   const downloadAll = useCallback(async () => {
     if (convertedFiles.length === 0) return;
-    
+
     setIsCreatingZip(true);
     try {
       const zip = new JSZip();
-      
-      // เพิ่มไฟล์ WebP ทั้งหมดลงใน ZIP
       convertedFiles.forEach((file) => {
-        const fileName = file.originalName.replace(/\.[^/.]+$/, '.webp');
-        zip.file(fileName, file.webpBlob);
+        zip.file(file.originalName.replace(/\.[^/.]+$/, '.webp'), file.webpBlob);
       });
-      
-      // สร้าง ZIP file
+
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      
-      // ดาวน์โหลด ZIP file
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `converted-webp-images-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.download = `webp-images-${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error creating ZIP file:', error);
+      console.error('Error creating ZIP:', error);
     } finally {
       setIsCreatingZip(false);
     }
   }, [convertedFiles]);
 
   const resetFiles = useCallback(() => {
-    files.forEach(file => URL.revokeObjectURL(file.preview));
-    convertedFiles.forEach(file => {
-      URL.revokeObjectURL(file.preview);
-      URL.revokeObjectURL(file.webpPreview);
+    files.forEach(f => URL.revokeObjectURL(f.preview));
+    convertedFiles.forEach(f => {
+      URL.revokeObjectURL(f.preview);
+      URL.revokeObjectURL(f.webpPreview);
     });
     setFiles([]);
     setConvertedFiles([]);
   }, [files, convertedFiles]);
 
+  const qualityLabel = quality >= 0.9 ? 'สูงสุด' : quality >= 0.7 ? 'สูง' : quality >= 0.5 ? 'ปานกลาง' : 'ต่ำ';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-gray-800">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      
-      <div className="relative container mx-auto px-4 py-4">
-        {/* Compact Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent mb-2">
-            Image to WebP Converter
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
+        {/* Header */}
+        <header className="text-center mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Image → WebP
           </h1>
-          <div className="flex justify-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-              🔒 ปลอดภัย
-            </span>
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-              ⚡ ทำงานใน Browser
-            </span>
-          </div>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            แปลง PNG / JPG เป็น WebP — ปลอดภัย ประมวลผลในเครื่องของคุณ
+          </p>
+        </header>
+
+        <div className="space-y-6">
+          {/* Upload area */}
+          <FileUpload onFilesSelect={handleFilesSelect} />
+
+          {/* Files selected */}
+          {files.length > 0 && (
+            <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-5">
+              {/* Section header */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                  ไฟล์ที่เลือก ({files.length})
+                </h2>
+                <button
+                  onClick={resetFiles}
+                  className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" /> ล้างทั้งหมด
+                </button>
+              </div>
+
+              <ImagePreview files={files} onRemove={handleRemoveFile} />
+
+              {/* Quality selector */}
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                  คุณภาพ WebP
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    value={quality}
+                    onChange={(e) => {
+                      setQuality(parseFloat(e.target.value));
+                      setConvertedFiles([]);
+                    }}
+                    className="flex-1"
+                  />
+                  <div className="w-28 text-right">
+                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                      {Math.round(quality * 100)}%
+                    </span>
+                    <span className="ml-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      {qualityLabel}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  ค่าต่ำ = ไฟล์เล็กลงมาก แต่ภาพจะเสียคุณภาพ &middot; ค่าสูง = ภาพคมชัด ไฟล์ใหญ่กว่า
+                </p>
+              </div>
+
+              {/* Convert button */}
+              <button
+                onClick={convertToWebP}
+                disabled={isConverting}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-base font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white transition-colors"
+              >
+                {isConverting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    กำลังแปลง...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRightLeft className="w-5 h-5" />
+                    แปลงเป็น WebP
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Converted results */}
+          {convertedFiles.length > 0 && (
+            <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                  ผลลัพธ์
+                </h2>
+                {convertedFiles.length > 1 && (
+                  <button
+                    onClick={downloadAll}
+                    disabled={isCreatingZip}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white transition-colors"
+                  >
+                    {isCreatingZip ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> สร้าง ZIP...
+                      </>
+                    ) : (
+                      <>
+                        <PackageOpen className="w-4 h-4" /> ดาวน์โหลดทั้งหมด (.zip)
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <ConvertedImages
+                convertedFiles={convertedFiles}
+                onDownload={downloadFile}
+              />
+            </div>
+          )}
+
+          {/* Empty state help */}
+          {files.length === 0 && convertedFiles.length === 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+              {[
+                { icon: Shield, title: 'ปลอดภัย 100%', desc: 'ไฟล์ไม่ถูกอัปโหลดไปที่ไหน' },
+                { icon: Zap, title: 'แปลงเร็ว', desc: 'ใช้ Browser ประมวลผลทันที' },
+                { icon: Globe, title: 'รองรับภาษาไทย', desc: 'ชื่อไฟล์ภาษาไทยใช้ได้' },
+              ].map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-center">
+                  <Icon className="w-6 h-6 mx-auto text-indigo-500 mb-2" />
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{title}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{desc}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Single Card Layout */}
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/50 p-4 sm:p-6">
-            
-            {/* Step Progress Bar - Compact */}
-            <div className="flex items-center justify-center mb-6">
-              <div className="flex items-center space-x-2">
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium transition-all ${files.length === 0 ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'}`}>
-                  1
-                </div>
-                <div className={`h-0.5 w-8 rounded transition-all ${files.length > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium transition-all ${files.length === 0 ? 'bg-gray-300 dark:bg-gray-600 text-gray-500' : convertedFiles.length === 0 ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'}`}>
-                  2
-                </div>
-                <div className={`h-0.5 w-8 rounded transition-all ${convertedFiles.length > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium transition-all ${convertedFiles.length === 0 ? 'bg-gray-300 dark:bg-gray-600 text-gray-500' : 'bg-green-500 text-white'}`}>
-                  3
-                </div>
-              </div>
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Left Column - Upload & Preview */}
-              <div className="space-y-4">
-                {/* File Upload Section - Compact */}
-                <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4">
-                  <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                    <span className="text-xl">📁</span>
-                    เลือกไฟล์รูปภาพ
-                  </h2>
-                  <FileUpload onFilesSelect={handleFilesSelect} />
-                </div>
-
-                {/* Image Preview Section - Compact */}
-                {files.length > 0 && (
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                        <span className="text-xl">🖼️</span>
-                        ไฟล์ที่เลือก ({files.length})
-                      </h3>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={resetFiles}
-                          className="px-3 py-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors border border-gray-300 dark:border-gray-600 rounded-lg"
-                        >
-                          🗑️ ลบ
-                        </button>
-                        <button
-                          onClick={convertToWebP}
-                          disabled={isConverting}
-                          className="px-4 py-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-blue-400 disabled:to-purple-400 text-white text-xs font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:shadow-md transform hover:scale-105 disabled:scale-100 inline-flex items-center gap-2"
-                        >
-                          {isConverting ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
-                              แปลง...
-                            </>
-                          ) : (
-                            <>
-                              🔄 แปลง
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    <ImagePreview files={files} />
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column - Converted Results */}
-              <div className="space-y-4">
-                {convertedFiles.length > 0 && (
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                        <span className="text-xl">✅</span>
-                        ไฟล์ที่แปลงแล้ว ({convertedFiles.length})
-                      </h3>
-                      {convertedFiles.length > 1 && (
-                        <button
-                          onClick={downloadAll}
-                          disabled={isCreatingZip}
-                          className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-green-400 disabled:to-emerald-400 text-white text-sm font-medium rounded-lg transition-all shadow-lg hover:shadow-xl disabled:shadow-md transform hover:scale-105 disabled:scale-100 inline-flex items-center gap-2"
-                        >
-                          {isCreatingZip ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                              สร้าง ZIP...
-                            </>
-                          ) : (
-                            <>
-                              📦 ดาวน์โหลดทั้งหมด
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    <ConvertedImages 
-                      convertedFiles={convertedFiles} 
-                      onDownload={downloadFile}
-                    />
-                  </div>
-                )}
-
-                {/* Instructions/Help Panel */}
-                {files.length === 0 && convertedFiles.length === 0 && (
-                  <div className="border border-gray-200 dark:border-gray-600 rounded-xl p-4 bg-gray-50 dark:bg-gray-700/50">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                      <span className="text-xl">💡</span>
-                      วิธีใช้งาน
-                    </h3>
-                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="flex items-start gap-2">
-                        <span className="text-blue-600 font-bold">1.</span>
-                        <span>เลือกไฟล์รูปภาพที่ต้องการแปลง (PNG, JPG, JPEG รองรับหลายไฟล์)</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-blue-600 font-bold">2.</span>
-                        <span>ตรวจสอบไฟล์และคลิก "แปลง"</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-blue-600 font-bold">3.</span>
-                        <span>ดาวน์โหลดไฟล์ WebP ที่แปลงแล้ว</span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                          <span>🔒</span>
-                          <span>ปลอดภัย 100%</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                          <span>⚡</span>
-                          <span>แปลงเร็ว</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                          <span>🌍</span>
-                          <span>รองรับภาษาไทย</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-                          <span>💾</span>
-                          <span>ขนาดเล็กลง</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Compact Footer */}
-        <footer className="mt-6 text-center text-gray-600 dark:text-gray-400">
-          <div className="text-xs space-y-1">
-            <p className="flex items-center justify-center gap-2 flex-wrap">
-              <span>© 2025 Image to WebP Converter</span>
-              <span>|</span>
-              <span className="flex items-center gap-1">
-                ทำด้วย ❤️ โดย 
-                <a href="https://nonie001.github.io/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors hover:underline">
-                  Anas.dev
-                </a>
-              </span>
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              🔒 การแปลงไฟล์ทำงานใน Browser ของคุณ ไฟล์จะไม่ถูกอัปโหลดไปยัง Server ใดๆ
-            </p>
-          </div>
+        {/* Footer */}
+        <footer className="mt-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-1">
+          <p>
+            © {new Date().getFullYear()} Image to WebP Converter · ทำด้วย ❤️ โดย{' '}
+            <a
+              href="https://nonie001.github.io/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-500 hover:underline"
+            >
+              Anas.dev
+            </a>
+          </p>
         </footer>
       </div>
     </div>

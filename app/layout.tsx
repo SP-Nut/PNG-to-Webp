@@ -18,7 +18,6 @@ export const metadata: Metadata = {
   description: "แปลงไฟล์รูปภาพ PNG, JPG, JPEG เป็น WebP ได้อย่างง่ายดาย ปลอดภัย 100% ทำงานใน Browser ไม่ต้องอัปโหลดไฟล์ รองรับหลายไฟล์พร้อมกัน",
   keywords: ["Image to WebP", "PNG to WebP", "JPG to WebP", "JPEG to WebP", "แปลงรูป", "image converter", "webp converter", "thai"],
   authors: [{ name: "Image to WebP Converter" }],
-  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({

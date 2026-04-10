@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { FileImage, HardDrive, X } from 'lucide-react';
 
 interface FileWithPreview {
   file: File;
@@ -10,74 +11,72 @@ interface FileWithPreview {
 
 interface ImagePreviewProps {
   files: FileWithPreview[];
+  onRemove: (id: string) => void;
 }
 
-export function ImagePreview({ files }: ImagePreviewProps) {
+export function ImagePreview({ files, onRemove }: ImagePreviewProps) {
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
+
+  const getFileExt = (name: string): string => {
+    const ext = name.split('.').pop()?.toUpperCase() || '';
+    return ext === 'JPEG' ? 'JPG' : ext;
+  };
+
+  const totalSize = files.reduce((sum, f) => sum + f.file.size, 0);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-        {files.map((fileWithPreview, index) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {files.map((fp) => (
           <div
-            key={fileWithPreview.id}
-            className="group bg-gray-50 dark:bg-gray-700 rounded-lg p-2 border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300 hover:scale-105"
+            key={fp.id}
+            className="group relative bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-shadow hover:shadow-md"
           >
-            {/* Compact Image Container */}
-            <div className="aspect-square relative mb-2 bg-white dark:bg-gray-900 rounded-md overflow-hidden shadow-inner">
+            <button
+              onClick={() => onRemove(fp.id)}
+              className="absolute top-1.5 right-1.5 z-10 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="aspect-square relative bg-slate-100 dark:bg-slate-900">
               <Image
-                src={fileWithPreview.preview}
-                alt={fileWithPreview.file.name}
+                src={fp.preview}
+                alt={fp.file.name}
                 fill
-                className="object-contain transition-transform duration-300 group-hover:scale-110"
-                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                className="object-contain"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
-              {/* File Number Badge */}
-              <div className="absolute top-1 left-1 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg">
-                {index + 1}
-              </div>
             </div>
-            
-            {/* Compact File Info */}
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-800 dark:text-white truncate" title={fileWithPreview.file.name}>
-                {fileWithPreview.file.name.length > 12 
-                  ? fileWithPreview.file.name.substring(0, 12) + '...'
-                  : fileWithPreview.file.name
-                }
+
+            <div className="p-2 space-y-1">
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate" title={fp.file.name}>
+                {fp.file.name}
               </p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatFileSize(fileWithPreview.file.size)}
-                </span>
-                <span className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded">
-                  PNG
+              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>{formatFileSize(fp.file.size)}</span>
+                <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 font-medium">
+                  {getFileExt(fp.file.name)}
                 </span>
               </div>
             </div>
           </div>
         ))}
       </div>
-      
-      {/* Compact Summary */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-        <div className="flex items-center justify-center gap-4 text-sm text-blue-800 dark:text-blue-300">
-          <span className="flex items-center gap-1">
-            📊 <strong>{files.length}</strong> ไฟล์
-          </span>
-          <span className="flex items-center gap-1">
-            💾 <strong>{formatFileSize(files.reduce((total, file) => total + file.file.size, 0))}</strong>
-          </span>
-          <span className="flex items-center gap-1">
-            ✨ พร้อมแปลง
-          </span>
-        </div>
+
+      <div className="flex items-center justify-center gap-4 text-xs text-slate-500 dark:text-slate-400 py-2">
+        <span className="inline-flex items-center gap-1">
+          <FileImage className="w-3.5 h-3.5" /> {files.length} ไฟล์
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <HardDrive className="w-3.5 h-3.5" /> {formatFileSize(totalSize)}
+        </span>
       </div>
     </div>
   );
