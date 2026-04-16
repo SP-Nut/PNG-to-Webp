@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FileImage, HardDrive, X } from 'lucide-react';
 
@@ -27,6 +28,19 @@ export function ImagePreview({ files, onRemove }: ImagePreviewProps) {
     const ext = name.split('.').pop()?.toUpperCase() || '';
     return ext === 'JPEG' ? 'JPG' : ext;
   };
+
+  const [dimensions, setDimensions] = useState<Record<string, { w: number; h: number }>>({}); 
+
+  useEffect(() => {
+    files.forEach((fp) => {
+      if (dimensions[fp.id]) return;
+      const img = new window.Image();
+      img.onload = () => {
+        setDimensions((prev) => ({ ...prev, [fp.id]: { w: img.width, h: img.height } }));
+      };
+      img.src = fp.preview;
+    });
+  }, [files, dimensions]);
 
   const totalSize = files.reduce((sum, f) => sum + f.file.size, 0);
 
@@ -65,6 +79,11 @@ export function ImagePreview({ files, onRemove }: ImagePreviewProps) {
                   {getFileExt(fp.file.name)}
                 </span>
               </div>
+              {dimensions[fp.id] && (
+                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {dimensions[fp.id].w} × {dimensions[fp.id].h} px
+                </p>
+              )}
             </div>
           </div>
         ))}
