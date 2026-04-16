@@ -15,6 +15,9 @@ import {
   Zap,
   Globe,
   PackageOpen,
+  Maximize2,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 interface FileWithPreview {
@@ -38,6 +41,11 @@ export default function Home() {
   const [isConverting, setIsConverting] = useState(false);
   const [isCreatingZip, setIsCreatingZip] = useState(false);
   const [quality, setQuality] = useState(0.85);
+  const [resizeEnabled, setResizeEnabled] = useState(false);
+  const [targetWidth, setTargetWidth] = useState<number | ''>('');
+  const [targetHeight, setTargetHeight] = useState<number | ''>('');
+  const [lockAspectRatio, setLockAspectRatio] = useState(true);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
 
   const handleFilesSelect = useCallback((selectedFiles: File[]) => {
     const filesWithPreview = selectedFiles.map(file => ({
@@ -71,9 +79,25 @@ export default function Home() {
 
         await new Promise<void>((resolve, reject) => {
           img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx?.drawImage(img, 0, 0);
+            let drawWidth = img.width;
+            let drawHeight = img.height;
+
+            if (resizeEnabled && (targetWidth || targetHeight)) {
+              if (targetWidth && targetHeight) {
+                drawWidth = targetWidth;
+                drawHeight = targetHeight;
+              } else if (targetWidth) {
+                drawWidth = targetWidth;
+                drawHeight = Math.round(img.height * (targetWidth / img.width));
+              } else if (targetHeight) {
+                drawHeight = targetHeight;
+                drawWidth = Math.round(img.width * (targetHeight / img.height));
+              }
+            }
+
+            canvas.width = drawWidth;
+            canvas.height = drawHeight;
+            ctx?.drawImage(img, 0, 0, drawWidth, drawHeight);
 
             canvas.toBlob(
               (blob) => {
@@ -103,7 +127,7 @@ export default function Home() {
 
     setConvertedFiles(converted);
     setIsConverting(false);
-  }, [files, quality]);
+  }, [files, quality, resizeEnabled, targetWidth, targetHeight]);
 
   const downloadFile = useCallback((cf: ConvertedFile) => {
     const url = URL.createObjectURL(cf.webpBlob);
@@ -188,6 +212,114 @@ export default function Home() {
               </div>
 
               <ImagePreview files={files} onRemove={handleRemoveFile} />
+
+              {/* Resize controls */}
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                    <Maximize2 className="w-4 h-4 text-indigo-500" />
+                    ปรับขนาด (px)
+                  </div>
+                  <button
+                    onClick={() => {
+                      setResizeEnabled(!resizeEnabled);
+                      setConvertedFiles([]);
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      resizeEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        resizeEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {resizeEnabled && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">กว้าง (px)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10000}
+                          placeholder="auto"
+                          value={targetWidth}
+                          onChange={(e) => {
+                            const w = e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1);
+                            setTargetWidth(w);
+                            if (lockAspectRatio && aspectRatio && w !== '') {
+                              setTargetHeight(Math.round(w / aspectRatio));
+                            }
+                            setConvertedFiles([]);
+                          }}
+                          onFocus={() => {
+                            if (lockAspectRatio && files.length > 0 && !aspectRatio) {
+                              const img = new window.Image();
+                              img.onload = () => setAspectRatio(img.width / img.height);
+                              img.src = files[0].preview;
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setLockAspectRatio(!lockAspectRatio);
+                          if (!lockAspectRatio && files.length > 0) {
+                            const img = new window.Image();
+                            img.onload = () => setAspectRatio(img.width / img.height);
+                            img.src = files[0].preview;
+                          }
+                        }}
+                        className="mt-5 p-2 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        title={lockAspectRatio ? 'ล็อกสัดส่วน' : 'ปลดล็อกสัดส่วน'}
+                      >
+                        {lockAspectRatio ? (
+                          <Lock className="w-4 h-4 text-indigo-500" />
+                        ) : (
+                          <Unlock className="w-4 h-4 text-slate-400" />
+                        )}
+                      </button>
+
+                      <div className="flex-1">
+                        <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">สูง (px)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10000}
+                          placeholder="auto"
+                          value={targetHeight}
+                          onChange={(e) => {
+                            const h = e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1);
+                            setTargetHeight(h);
+                            if (lockAspectRatio && aspectRatio && h !== '') {
+                              setTargetWidth(Math.round(h * aspectRatio));
+                            }
+                            setConvertedFiles([]);
+                          }}
+                          onFocus={() => {
+                            if (lockAspectRatio && files.length > 0 && !aspectRatio) {
+                              const img = new window.Image();
+                              img.onload = () => setAspectRatio(img.width / img.height);
+                              img.src = files[0].preview;
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      เว้นว่างเพื่อคำนวณอัตโนมัติ &middot; ใส่ทั้งสองค่าเพื่อกำหนดขนาดตายตัว
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* Quality selector */}
               <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 space-y-3">
